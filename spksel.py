@@ -8,12 +8,12 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -25,28 +25,18 @@ import os
 import re
 import sys
 import time
-from pianobar_control import PianoBar
 
 
-SOURCES = {'Cd': 'PhilipsHiFi Cd',
-           'Tuner': 'PhilipsHiFi Tuner',
-           'Usb': 'PhilipsHiFiUsb Usb',
-           'AirPlay': 'PhilipsHiFi Aux',
-           'Pandora': 'PhilipsHiFi Aux',
-           'Ipod': 'PhilipsHiFi Ipod'}
-NUM_ROOMS = 5
+NUM_ROOMS = 4
 STATE_FILE = './state.dat'
 DEFAULT_STATE = dict(switches=[False]*NUM_ROOMS, source='Cd')
 
 ENABLE_EXEC = True
 SWITCH_EXEC = ['sudo', './control.py']
-IR_EXEC = ['irsend', 'SEND_ONCE']
 
 app = flask.Flask(__name__)
 app.jinja_env.add_extension('pyjade.ext.jinja.PyJadeExtension')
 app.config['PROPAGATE_EXCEPTIONS'] = True
-
-pianobar = None
 
 
 def do_exec(command):
@@ -61,14 +51,12 @@ def do_exec(command):
 @app.route('/')
 def index():
     state = load_state()
-    add_pandora_status(state)
     return flask.render_template('index.jade', state=json.dumps(state))
 
 
 @app.route('/state')
 def state():
     state = load_state()
-    add_pandora_status(state)
     return flask.jsonify(state)
 
 
@@ -84,65 +72,7 @@ def switches():
     save_state(state)
     set_switches(state['switches'])
 
-    add_pandora_status(state)
     return flask.jsonify(state)
-
-
-@app.route('/ir', methods=['GET','POST'])
-def ir():
-    ir = flask.request.values.get('ir')
-    assert re.match(r'^[A-Za-z0-9 ]+$', ir)
-
-    do_exec(IR_EXEC + ir.split())
-    state = load_state()
-
-    add_pandora_status(state)
-    return flask.jsonify(state)
-
-
-@app.route('/source', methods=['GET','POST'])
-def source():
-    source = flask.request.values.get('source')
-    assert source in SOURCES
-
-    do_exec(IR_EXEC + SOURCES[source].split())
-
-    global pianobar
-    if source == 'Pandora':
-        if pianobar and pianobar.is_running():
-            pianobar.play()
-        else:
-            restart_pianobar()
-    else:
-        if pianobar and pianobar.is_running():
-            pianobar.pause()
-
-    state = load_state()
-    state['source'] = source
-    save_state(state)
-
-    add_pandora_status(state)
-    return flask.jsonify(state)
-
-
-@app.route('/pandora', methods=['GET','POST'])
-def pandora():
-    cmd = flask.request.values.get('cmd')
-    if cmd:
-        if cmd in {'play', 'pause', 'skip', 'love', 'ban', 'tired'}:
-            getattr(pianobar, cmd)()
-        elif cmd in {'select_station'}:
-            getattr(pianobar, cmd)(flask.request.values.get('arg'))
-            time.sleep(1)  # allow status file to be updated.
-        elif cmd == 'restart':
-            restart_pianobar()
-        else:
-            raise ValueError("Unknown command")
-
-    state = load_state()
-    add_pandora_status(state)
-    return flask.jsonify(state)
-
 
 # Not really concurrency safe, but only one or two users will ever really use
 # this at a time.
@@ -169,21 +99,6 @@ def save_state(state):
 def set_switches(switches):
     on_rooms = filter(lambda x: switches[x], range(len(switches)))
     do_exec(SWITCH_EXEC + map(str, on_rooms))
-
-
-def add_pandora_status(state):
-    global pianobar
-    if pianobar and pianobar.is_running():
-        state['pandora'] = pianobar.status()
-
-
-def restart_pianobar():
-    global pianobar
-    if pianobar and pianobar.is_running():
-        pianobar.quit()
-    pianobar = PianoBar()
-    pianobar.run()
-
 
 if __name__ == '__main__':
     import argparse
