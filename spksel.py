@@ -29,7 +29,7 @@ import time
 
 NUM_ROOMS = 4
 STATE_FILE = './state.dat'
-DEFAULT_STATE = dict(switches=[False]*NUM_ROOMS, source='Cd')
+DEFAULT_STATE = dict(switches=[False]*NUM_ROOMS)
 
 ENABLE_EXEC = True
 SWITCH_EXEC = ['sudo', './control.py']
@@ -83,7 +83,6 @@ def load_state():
             state = json.load(f)
 
         assert len(state['switches']) == NUM_ROOMS
-        assert state['source'] in SOURCES
     except Exception as e:
         print("Error loading persisted state", file=sys.stderr)
         state = DEFAULT_STATE
