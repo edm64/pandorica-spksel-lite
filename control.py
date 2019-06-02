@@ -21,11 +21,11 @@ import sys
 import RPi.GPIO as GPIO
 import time
 
-PIN_MAP = { 	0:[11, 7],
-		1:[12, 13],
+PIN_MAP = { 	0:[18, 22],
+		1:[24, 26],
 		2:[15, 16],
-		3:[22, 18],
-		'z':[24, 26] }	# Impedance Matching
+		3:[12, 13],
+		'z':[7, 11] }	# Impedance Protection Bypass
 
 NUM_ROOMS = len(PIN_MAP)-1
 PULSE_TIME = 0.050 # seconds
@@ -63,7 +63,7 @@ for group in PIN_MAP.values():
 
 # enable impedance protection, unless exactly one pair of speakers is in use
 if NUM_ROOMS_ON != 1:
-	pulse_relay_pin(PIN_MAP['z'][1])
+	pulse_relay_pin(PIN_MAP['z'][0])
 
 # toggle coils sequentially, one at a time (to limit current draw)
 for room, onoff in enumerate(onoff_map):
@@ -72,6 +72,6 @@ for room, onoff in enumerate(onoff_map):
 
 # enable "single pair direct" if exactly one pair of speakers is in use
 if NUM_ROOMS_ON == 1:
-        pulse_relay_pin(PIN_MAP['z'][0])
+        pulse_relay_pin(PIN_MAP['z'][1])
 
 GPIO.cleanup()
