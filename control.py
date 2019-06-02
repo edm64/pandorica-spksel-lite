@@ -21,11 +21,11 @@ import sys
 import RPi.GPIO as GPIO
 import time
 
-PIN_MAP = { 	0:[18, 22],
-		1:[24, 26],
-		2:[15, 16],
-		3:[12, 13],
-		'z':[7, 11] }	# Impedance Protection Bypass
+PIN_MAP = { 	0:[22, 18],
+		1:[26, 24],
+		2:[16, 15],
+		3:[13, 12],
+		'z':[11, 7] }	# Impedance Protection Bypass
 
 NUM_ROOMS = len(PIN_MAP)-1
 PULSE_TIME = 0.050 # seconds
